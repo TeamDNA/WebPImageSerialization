@@ -4,6 +4,7 @@ Pod::Spec.new do |s|
   s.license  = 'MIT'
   s.summary  = 'Decodes UIImage sequences from WebP images.'
   s.homepage = 'https://github.com/TeamDNA/WebPImageSerialization'
+  s.authors  = { 'Mattt Thompson' => 'm@mattt.me', 'Hendrik Hofstadt' => 'dev@slamper.me' }
   s.source   = { :git => 'https://github.com/mattt/WebPImageSerialization.git'}
   s.source_files = 'WebPImageSerialization', 'WebP.framework'
   s.preserve_paths = 'WebPImageSerialization', 'WebP.framework'
