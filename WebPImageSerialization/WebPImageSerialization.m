@@ -127,76 +127,6 @@ __attribute__((overloadable)) UIImage * UIImageWithWebPData(NSData *data, CGFloa
         return nil;
     }
 }
-
-extern __attribute__((overloadable)) NSData * UIImageWebPRepresentation(UIImage *image) {
-    return UIImageWebPRepresentation(image, 75.0f, (WebPImagePreset)WebPImageDefaultPreset, nil);
-}
-
-__attribute__((overloadable)) NSData * UIImageWebPRepresentation(UIImage *image, WebPImagePreset preset, CGFloat quality, NSError * __autoreleasing *error) {
-    NSCParameterAssert(quality >= 0.0f && quality <= 100.0f);
-
-    CGImageRef imageRef = image.CGImage;
-    NSDictionary *userInfo = nil;
-
-    {
-        CGDataProviderRef dataProvider = CGImageGetDataProvider(imageRef);
-        CFDataRef dataRef = CGDataProviderCopyData(dataProvider);
-
-        WebPConfig config;
-        WebPPicture picture;
-
-        if (!WebPConfigPreset(&config, (WebPPreset)preset, quality)) {
-            userInfo = @{NSLocalizedDescriptionKey: NSLocalizedStringFromTable(@"WebP image configuration preset initialization failed.", @"WebPImageSerialization", nil)};
-            goto _error;
-        }
-
-        if (!WebPValidateConfig(&config)) {
-            userInfo = @{NSLocalizedDescriptionKey: NSLocalizedStringFromTable(@"WebP image invalid configuration.", @"WebPImageSerialization", nil)};
-            goto _error;
-        }
-
-        if (!WebPPictureInit(&picture)) {
-            userInfo = @{NSLocalizedDescriptionKey: NSLocalizedStringFromTable(@"WebP image failed to initialize structure.", @"WebPImageSerialization", nil)};
-            goto _error;
-        }
-
-        size_t bytesPerRow = CGImageGetBytesPerRow(imageRef);
-        size_t width = CGImageGetWidth(imageRef);
-        size_t height = CGImageGetHeight(imageRef);
-
-        picture.colorspace = WEBP_YUV420;
-        picture.width = (int)width;
-        picture.height = (int)height;
-
-        WebPPictureImportRGBA(&picture, (uint8_t *)CFDataGetBytePtr(dataRef), (int)bytesPerRow);
-        WebPPictureARGBToYUVA(&picture, picture.colorspace);
-        WebPCleanupTransparentArea(&picture);
-
-        CFRelease(dataRef);
-
-        WebPMemoryWriter writer;
-        WebPMemoryWriterInit(&writer);
-        picture.writer = WebPMemoryWrite;
-        picture.custom_ptr = &writer;
-        WebPEncode(&config, &picture);
-
-        NSData *data = [NSData dataWithBytes:writer.mem length:writer.size];
-        
-        WebPPictureFree(&picture);
-
-        return data;
-    }
-    _error: {
-        if (error) {
-            *error = [[NSError alloc] initWithDomain:WebPImageErrorDomain code:-1 userInfo:userInfo];
-        }
-        
-        CFRelease(imageRef);
-        
-        return nil;
-    }
-}
-
 @implementation WebPImageSerialization
 
 + (UIImage *)imageWithData:(NSData *)data
@@ -211,23 +141,6 @@ __attribute__((overloadable)) NSData * UIImageWebPRepresentation(UIImage *image,
 {
     return UIImageWithWebPData(data, scale, error);
 }
-
-#pragma mark -
-
-+ (NSData *)dataWithImage:(UIImage *)image
-                    error:(NSError * __autoreleasing *)error
-{
-    return [self dataWithImage:image preset:(WebPImagePreset)WebPImageDefaultPreset quality:1.0f error:error];
-}
-
-+ (NSData *)dataWithImage:(UIImage *)image
-                   preset:(WebPImagePreset)preset
-                  quality:(CGFloat)quality
-                    error:(NSError * __autoreleasing *)error
-{
-    return UIImageWebPRepresentation(image, preset, quality, error);
-}
-
 @end
 
 #pragma mark -
